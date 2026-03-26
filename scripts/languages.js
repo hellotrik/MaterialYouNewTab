@@ -125,6 +125,8 @@ function applyLanguage(lang) {
         "editShortcutsListInfo",
         "adaptiveIconText",
         "adaptiveIconInfoText",
+        "shortcutNameDisplayText",
+        "shortcutNameDisplayInfoText",
         "ai_tools_button",
         "enable_ai_tools",
         "aiToolsSettingsText",

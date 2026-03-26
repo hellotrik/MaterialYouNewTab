@@ -37,6 +37,10 @@ document.addEventListener("DOMContentLoaded", function () {
         store: "shortcutIcons",
     };
 
+    function t(key, fallback) {
+        return translations?.[currentLanguage]?.[key] ?? translations?.["en"]?.[key] ?? fallback;
+    }
+
     // DOM Elements
     const dom = {
         shortcuts: document.getElementById("shortcuts-section"),
@@ -44,6 +48,8 @@ document.addEventListener("DOMContentLoaded", function () {
         shortcutEditField: document.getElementById("shortcutEditField"),
         adaptiveIconField: document.getElementById("adaptiveIconField"),
         adaptiveIconToggle: document.getElementById("adaptiveIconToggle"),
+        shortcutNameDisplayField: document.getElementById("shortcutNameDisplayField"),
+        shortcutNameDisplayToggle: document.getElementById("shortcutNameDisplayToggle"),
         shortcutSettingsContainer: document.getElementById("shortcutList"),
         shortcutsContainer: document.getElementById("shortcutsContainer"),
         newShortcutButton: document.getElementById("newShortcutButton"),
@@ -212,6 +218,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function loadSettings() {
         loadCheckboxState("shortcutsCheckboxState", dom.shortcutsCheckbox);
         loadCheckboxState("adaptiveIconToggle", dom.adaptiveIconToggle);
+        loadCheckboxState("shortcutNameDisplayToggle", dom.shortcutNameDisplayToggle);
         loadActiveStatus("shortcutEditField", dom.shortcutEditField);
         loadActiveStatus("adaptiveIconField", dom.adaptiveIconField);
         loadDisplayStatus("shortcutsDisplayStatus", dom.shortcuts);
@@ -222,6 +229,8 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
             dom.shortcutsContainer.classList.remove("adaptive-icons");
         }
+
+        applyShortcutNameDisplayMode();
     }
 
     // Sets up all event listeners
@@ -229,6 +238,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Checkbox events
         dom.shortcutsCheckbox.addEventListener("change", handleShortcutsToggle);
         dom.adaptiveIconToggle.addEventListener("change", handleAdaptiveIconToggle);
+        dom.shortcutNameDisplayToggle.addEventListener("change", handleShortcutNameDisplayToggle);
 
         // Button events
         dom.newShortcutButton.addEventListener("click", handleNewShortcutClick);
@@ -296,9 +306,9 @@ document.addEventListener("DOMContentLoaded", function () {
         entry._index = index;
 
         const iconModeOptions = [
-            { value: ICON_TYPES.auto, label: "Auto" },
-            { value: ICON_TYPES.builtin, label: "Built-in" },
-            { value: ICON_TYPES.upload, label: "Upload" },
+            { value: ICON_TYPES.auto, label: t("shortcutIconModeAuto", "Auto") },
+            { value: ICON_TYPES.builtin, label: t("shortcutIconModeBuiltin", "Built-in") },
+            { value: ICON_TYPES.upload, label: t("shortcutIconModeUpload", "Upload") },
         ];
 
         const builtinOptions = BUILTIN_ICON_KEYS
@@ -320,14 +330,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 <input class="shortcutName" placeholder="${PLACEHOLDER.inputName}" value="${escapeHtml(name)}">
                 <input class="URL" placeholder="${PLACEHOLDER.inputUrl}" value="${escapeHtml(url)}">
                 <div class="shortcutIconControls">
-                    <div class="shortcutIconPreview" title="Icon preview"></div>
-                    <select class="shortcutIconMode" title="Icon mode">
+                    <div class="shortcutIconPreview" title="${escapeHtml(t("shortcutIconPreviewTitle", "Icon preview"))}"></div>
+                    <select class="shortcutIconMode" title="${escapeHtml(t("shortcutIconModeTitle", "Icon mode"))}">
                         ${iconModeOptions.map(o => `<option value="${o.value}">${o.label}</option>`).join("")}
                     </select>
-                    <select class="shortcutBuiltinIcon" title="Built-in icon">
+                    <select class="shortcutBuiltinIcon" title="${escapeHtml(t("shortcutBuiltinIconTitle", "Built-in icon"))}">
                         ${builtinOptions}
                     </select>
-                    <button type="button" class="shortcutIconUploadBtn" title="Upload icon">
+                    <button type="button" class="shortcutIconUploadBtn" title="${escapeHtml(t("shortcutUploadIconTitle", "Upload icon"))}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                             <path d="M6.5 20q-2.275 0-3.887-1.575T1 14.575q0-1.95 1.175-3.475T5.25 9.15q.625-2.3 2.5-3.725T12 4q2.925 0 4.963 2.038T19 11q1.725.2 2.863 1.488T23 15.5q0 1.875-1.312 3.188T18.5 20H13q-.825 0-1.412-.587T11 18v-5.15L9.4 14.4L8 13l4-4l4 4l-1.4 1.4l-1.6-1.55V18h5.5q1.05 0 1.775-.725T21 15.5t-.725-1.775T18.5 13H17v-2q0-2.075-1.463-3.538T12 6T8.463 7.463T7 11h-.5q-1.45 0-2.475 1.025T3 14.5t1.025 2.475T6.5 18H9v2zm5.5-7"/>
                         </svg>
@@ -987,6 +997,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         dom.adaptiveIconField.classList.toggle("inactive", !isChecked);
         saveActiveStatus("adaptiveIconField", isChecked ? "active" : "inactive");
+
+        dom.shortcutNameDisplayField.classList.toggle("inactive", !isChecked);
+        saveActiveStatus("shortcutNameDisplayField", isChecked ? "active" : "inactive");
     }
 
     // Handles the adaptive icon toggle checkbox change
@@ -997,6 +1010,16 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
             dom.shortcutsContainer.classList.remove("adaptive-icons");
         }
+    }
+
+    function applyShortcutNameDisplayMode() {
+        const alwaysShowNames = dom.shortcutNameDisplayToggle?.checked === true;
+        dom.shortcutsContainer.classList.toggle("always-show-shortcut-names", alwaysShowNames);
+    }
+
+    function handleShortcutNameDisplayToggle() {
+        saveCheckboxState("shortcutNameDisplayToggle", this);
+        applyShortcutNameDisplayMode();
     }
 
     // Adds a new shortcut

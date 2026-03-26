@@ -2506,6 +2506,11 @@ body[data-bg="wallpaper"] .shortcuts .shortcut-name {
 	opacity: 1;
 }
 
+.shortcutsContainer.always-show-shortcut-names .shortcuts .shortcut-name {
+	visibility: visible;
+	opacity: 1;
+}
+
 .shortcutsContainer .shortcuts a {
 	border-radius: 100px;
 	display: block;
