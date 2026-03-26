@@ -208,7 +208,8 @@ function performSearch(query) {
     const searchTerm = query || searchInput.value;
 
     if (searchTerm !== "") {
-        if (selectedOption === "engine0") {
+        // Treat Google (engine1) like browser default search to avoid loading the Google page.
+        if (selectedOption === "engine0" || selectedOption === "engine1") {
             try {
                 if (isFirefox) {
                     browser.search.query({ text: searchTerm });
