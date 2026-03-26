@@ -299,6 +299,11 @@ function applyLanguage(lang) {
     applyTranslations(elementsMap, false);     // For innerTexts with different IDs and keys
     applyTranslations(translationMap, false);  // For innerTexts with same ID and keys
 
+    // Re-apply dynamic labels that depend on current visibility/state
+    if (typeof window.updateAiToolsEntryBehavior === "function") {
+        window.updateAiToolsEntryBehavior();
+    }
+
     // For userText
     const userTextDiv = document.getElementById("userText");
     if (translations[lang]) {

@@ -38,6 +38,74 @@ const saveAISettingsBtn = document.getElementById("saveAISettingsBtn");
 const aiToolsEditButton = document.getElementById("aiToolsEditButton");
 const aiToolsCont = document.getElementById("aiToolsCont");
 const aiToolsEditField = document.getElementById("aiToolsEditField");
+const aiToolsMainLabel = document.getElementById("ai_tools");
+
+function getVisibleAiToolLinks() {
+    const links = [...aiToolName.querySelectorAll("a")];
+    return links.filter(a => a.style.display !== "none");
+}
+
+function setAiToolsPanelVisibility(isVisible) {
+    const shortcutsCheckbox = document.getElementById("shortcutsCheckbox");
+    if (isVisible) {
+        shortcuts.style.display = "none";
+        aiToolName.style.display = "flex";
+        requestAnimationFrame(() => {
+            aiToolName.style.opacity = "1";
+            aiToolName.style.transform = "translateX(0)";
+        });
+        setTimeout(() => {
+            aiToolName.style.gap = "12px";
+        }, 300);
+        return;
+    }
+
+    if (shortcutsCheckbox.checked) {
+        shortcuts.style.display = "flex";
+    } else {
+        shortcuts.style.display = "none";
+    }
+
+    aiToolName.style.opacity = "0";
+    aiToolName.style.gap = "0";
+    aiToolName.style.transform = "translateX(-100%)";
+    setTimeout(() => {
+        aiToolName.style.display = "none";
+    }, 500);
+}
+
+function updateAiToolsEntryBehavior() {
+    const visibleLinks = getVisibleAiToolLinks();
+
+    // Single-tool mode: direct jump, no expansion list
+    if (visibleLinks.length === 1) {
+        const only = visibleLinks[0];
+        const toolLabel = only.querySelector(".tLabel")?.textContent?.trim();
+        const defaultLabel = translations[currentLanguage]?.ai_tools || translations["en"]?.ai_tools || "AI Tools";
+
+        aiToolsIcon.dataset.singleToolHref = only.href;
+        aiToolsIcon.dataset.singleToolMode = "true";
+        if (aiToolsMainLabel) {
+            aiToolsMainLabel.textContent = toolLabel || defaultLabel;
+        }
+
+        // Ensure panel is closed in this mode
+        if (aiToolName.style.display === "flex") {
+            setAiToolsPanelVisibility(false);
+        }
+        return;
+    }
+
+    // Normal mode: AI Tools label + expandable list
+    delete aiToolsIcon.dataset.singleToolHref;
+    aiToolsIcon.dataset.singleToolMode = "false";
+    if (aiToolsMainLabel) {
+        aiToolsMainLabel.textContent = translations[currentLanguage]?.ai_tools || translations["en"]?.ai_tools || "AI Tools";
+    }
+}
+
+// Expose for language change re-application (languages.js uses a whitelist-based translator).
+window.updateAiToolsEntryBehavior = updateAiToolsEntryBehavior;
 
 // Animation helper function
 function animateReorder(element1, element2, direction) {
@@ -168,6 +236,8 @@ function applyAIToolsSettings() {
             aiToolName.appendChild(toolElement);
         }
     });
+
+    updateAiToolsEntryBehavior();
 }
 
 // Function to generate the AI Tools settings form elements
@@ -307,32 +377,14 @@ function toggleAITools(event) {
 
     if (isAIToolVisible) {
         // Hide AI Tool panel
-        if (shortcutsCheckbox.checked) {
-            shortcuts.style.display = "flex";
-        } else {
-            shortcuts.style.display = "none";
-        }
-
-        aiToolName.style.opacity = "0";
-        aiToolName.style.gap = "0";
-        aiToolName.style.transform = "translateX(-100%)";
-
+        setAiToolsPanelVisibility(false);
         setTimeout(() => {
-            aiToolName.style.display = "none";
             isAIToolsTransitioning = false;
         }, 500);
     } else {
         // Show AI Tool panel
-        shortcuts.style.display = "none";
-        aiToolName.style.display = "flex";
-
-        requestAnimationFrame(() => {
-            aiToolName.style.opacity = "1";
-            aiToolName.style.transform = "translateX(0)";
-        });
-
+        setAiToolsPanelVisibility(true);
         setTimeout(() => {
-            aiToolName.style.gap = "12px";
             isAIToolsTransitioning = false;
         }, 300);
     }
@@ -356,7 +408,17 @@ document.addEventListener("DOMContentLoaded", function () {
     }, { passive: false });
 
     // AI Tools icon click handler
-    aiToolsIcon.addEventListener("click", toggleAITools);
+    aiToolsIcon.addEventListener("click", (e) => {
+        const isSingle = aiToolsIcon.dataset.singleToolMode === "true";
+        const href = aiToolsIcon.dataset.singleToolHref;
+        if (isSingle && href) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.location.assign(href);
+            return;
+        }
+        toggleAITools(e);
+    });
 
     // AI Tools edit button click handler
     aiToolsEditButton.addEventListener("click", function (e) {
@@ -449,6 +511,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Apply new settings
         applyAIToolsSettings();
+        updateAiToolsEntryBehavior();
 
         // Close modal
         closeAIToolsSettings();
