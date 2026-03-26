@@ -11,7 +11,7 @@
 const dbName = "ImageDB";
 const storeName = "backgroundImages";
 const timestampKey = "lastUpdateTime"; // Key to store last update time
-const imageTypeKey = "imageType"; // Key to store the type of image ("random" or "upload")
+const imageTypeKey = "imageType"; // Key to store the type of image ("upload")
 
 // Open IndexedDB database
 function openDatabase() {
@@ -27,7 +27,7 @@ function openDatabase() {
 }
 
 // Save image Blob, timestamp, and type to IndexedDB
-async function saveImageToIndexedDB(imageBlob, isRandom) {
+async function saveImageToIndexedDB(imageBlob) {
     const db = await openDatabase();
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(storeName, "readwrite");
@@ -35,7 +35,7 @@ async function saveImageToIndexedDB(imageBlob, isRandom) {
 
         store.put(imageBlob, "backgroundImage"); // Save Blob
         store.put(new Date().toISOString(), timestampKey);
-        store.put(isRandom ? "random" : "upload", imageTypeKey);
+        store.put("upload", imageTypeKey);
 
         transaction.oncomplete = () => resolve();
         transaction.onerror = (event) => reject("Transaction error: " + event.target.errorCode);
@@ -87,7 +87,7 @@ document.getElementById("imageUpload").addEventListener("change", function (even
 
         image.onload = function () {
             document.body.style.setProperty("--bg-image", `url(${imageUrl})`);
-            saveImageToIndexedDB(file, false)
+            saveImageToIndexedDB(file)
                 .then(() => {
                     toggleBackgroundType(true);
                     URL.revokeObjectURL(imageUrl); // Clean up memory
@@ -98,29 +98,6 @@ document.getElementById("imageUpload").addEventListener("change", function (even
         image.src = imageUrl;
     }
 });
-
-// Fetch and apply random image as background
-const RANDOM_IMAGE_URL = "https://picsum.photos/1920/1080";
-
-async function applyRandomImage(showConfirmation = true) {
-    if (showConfirmation && !(await confirmPrompt(
-        translations[currentLanguage]?.confirmWallpaper || translations["en"].confirmWallpaper
-    ))) {
-        return;
-    }
-    try {
-        const response = await fetch(RANDOM_IMAGE_URL);
-        const blob = await response.blob(); // Get Blob from response
-        const imageUrl = URL.createObjectURL(blob);
-
-        document.body.style.setProperty("--bg-image", `url(${imageUrl})`);
-        await saveImageToIndexedDB(blob, true);
-        toggleBackgroundType(true);
-        setTimeout(() => URL.revokeObjectURL(imageUrl), 2000); // Delay URL revocation
-    } catch (error) {
-        console.error("Error fetching random image:", error);
-    }
-}
 
 // Function to update the background type attribute
 function toggleBackgroundType(hasWallpaper) {
@@ -140,6 +117,18 @@ function checkAndUpdateImage() {
                 return;
             }
 
+            // Historical random wallpaper cache is no longer supported.
+            // Clean it up and fall back to default background.
+            if (imageType === "random") {
+                clearImageFromIndexedDB()
+                    .then(() => {
+                        document.body.style.removeProperty("--bg-image");
+                        toggleBackgroundType(false);
+                    })
+                    .catch(error => console.error(error));
+                return;
+            }
+
             // Create a new Blob URL dynamically
             const imageUrl = URL.createObjectURL(blob);
 
@@ -147,15 +136,6 @@ function checkAndUpdateImage() {
                 document.body.style.setProperty("--bg-image", `url(${imageUrl})`);
                 toggleBackgroundType(true);
                 return;
-            }
-
-            if (lastUpdate.toDateString() !== now.toDateString()) {
-                // Refresh random image if a new day
-                applyRandomImage(false);
-            } else {
-                // Reapply the saved random image
-                document.body.style.setProperty("--bg-image", `url(${imageUrl})`);
-                toggleBackgroundType(true);
             }
 
             // Clean up the Blob URL after setting the background
@@ -194,7 +174,6 @@ document.getElementById("clearImage").addEventListener("click", async function (
         console.error(error);
     }
 });
-document.getElementById("randomImageTrigger").addEventListener("click", applyRandomImage);
 
 // Start image check on page load
 checkAndUpdateImage();
